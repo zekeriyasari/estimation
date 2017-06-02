@@ -1,5 +1,5 @@
 from unittest import TestCase
-from estimation.estimators import *
+from estimation.theoretical_estimators import *
 
 
 class TestEstimators(TestCase):
