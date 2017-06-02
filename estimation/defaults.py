@@ -1,0 +1,2 @@
+DERIVSTEP = 1e-6
+MAXITER = 1e3

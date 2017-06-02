@@ -41,5 +41,3 @@ for i, n in enumerate(lengths):
 
     means[i] = a_hat.mean()
     variances[i] = a_hat.var() * n
-
-
