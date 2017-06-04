@@ -1,3 +1,9 @@
+# Example 7.5 in the book
+# DC level estimation in WGN. Estimation problem is
+#   x[n] = A + w[n],    n = 0, ..., N - 1
+# where w[n] is WGN with variance A
+# A is to be estimated
+
 import numpy as np
 from scipy.stats import gaussian_kde
 import matplotlib.pyplot as plt

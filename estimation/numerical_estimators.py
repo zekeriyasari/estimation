@@ -60,7 +60,7 @@ def numerical_gradient(f, x, h=DERIVSTEP, *args, **kwargs):
         return grad
 
 
-def newton_raphson(f, x0, fprime=None, tol=TOL, maxiter=MAXITER, *args, **kwargs):
+def newton_raphson(f, x0, fprime=None, tol=TOL, maxiter=MAXITER, callback=None, *args, **kwargs):
     """
     Newton-Raphson method for root finding in the form:
         f(x) = 0,   f: R^n -> R^m
@@ -74,6 +74,8 @@ def newton_raphson(f, x0, fprime=None, tol=TOL, maxiter=MAXITER, *args, **kwargs
         stopping tolerance
     :param maxiter: int,    
         maximum number of iterations
+    :param callback: callable,
+        callback function
     :param args: tuple,
         arguments of f
     :param kwargs: 
@@ -102,11 +104,14 @@ def newton_raphson(f, x0, fprime=None, tol=TOL, maxiter=MAXITER, *args, **kwargs
         else:
             p = p0 - (np.linalg.inv(fder.dot(fder.T)).dot(fder)).dot(fval).flatten()  # Multivariate Newton-Raphson
         if np.linalg.norm(p - p0) < tol:
-            return p
+            return i, p
+
         p0 = p
+        if callback is not None:
+            callback()
 
 
-def scoring(f, x0, fisher=None, tol=TOL, maxiter=MAXITER, *args, **kwargs):
+def scoring(f, x0, fisher=None, tol=TOL, maxiter=MAXITER, callback=None, *args, **kwargs):
     """
     Newton-Raphson method for root finding in the form:
         f(x) = 0,   f: R^n -> R^m
@@ -120,6 +125,8 @@ def scoring(f, x0, fisher=None, tol=TOL, maxiter=MAXITER, *args, **kwargs):
         stopping tolerance
     :param maxiter: int,    
         maximum number of iterations
+    :param callback: callable,
+        callback function
     :param args: tuple,
         arguments of f
     :param kwargs: 
@@ -148,5 +155,12 @@ def scoring(f, x0, fisher=None, tol=TOL, maxiter=MAXITER, *args, **kwargs):
         else:
             p = p0 - np.linalg.inv(finfo).dot(fval).flatten()  # Multivariate scoring
         if np.linalg.norm(p - p0) < tol:
-            return p
+            return i, p
         p0 = p
+
+        if callback is not None:
+            callback()
+
+
+if __name__ == '__main__':
+    pass
