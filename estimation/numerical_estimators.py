@@ -106,3 +106,47 @@ def newton_raphson(f, x0, fprime=None, tol=TOL, maxiter=MAXITER, *args, **kwargs
         p0 = p
 
 
+def scoring(f, x0, fisher=None, tol=TOL, maxiter=MAXITER, *args, **kwargs):
+    """
+    Newton-Raphson method for root finding in the form:
+        f(x) = 0,   f: R^n -> R^m
+    :param f: callable,
+        function whose root will be calculated
+    :param x0: numbers.Number, np.ndarray
+        initial guess
+    :param fisher: callable,
+        Fisher information function of f. If not provided, it is calculated numerically.
+    :param tol: float,
+        stopping tolerance
+    :param maxiter: int,    
+        maximum number of iterations
+    :param args: tuple,
+        arguments of f
+    :param kwargs: 
+        keyword arguments of f
+    :return: numbers.Number, np.ndarray,
+        root of f(x) = 0
+    """
+    # Check for default parameters
+    if tol <= 0:
+        raise ValueError("tol must be greater than zero")
+    if maxiter < 1:
+        raise ValueError("maxiter must be greater than zero")
+
+    # Wrap function if fprime is not given, use numerical calculation
+    ff = functools.partial(f, *args, **kwargs)
+    if fisher is None:
+        def fisher(x):
+            return numerical_gradient(f, x)
+
+    p0 = x0
+    for i in range(maxiter):
+        finfo = fisher(p0)
+        fval = ff(p0)
+        if isinstance(x0, numbers.Number):  # Scalar scoring
+            p = p0 - fval / finfo
+        else:
+            p = p0 - np.linalg.inv(finfo).dot(fval).flatten()  # Multivariate scoring
+        if np.linalg.norm(p - p0) < tol:
+            return p
+        p0 = p

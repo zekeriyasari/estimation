@@ -3,17 +3,11 @@ from scipy.stats import gaussian_kde
 import matplotlib.pyplot as plt
 
 
-def gaussian_pdf(x, mu=0., sigma2=1.):
+def gaussian_pdf(x, mean=0., variance=1.):
     """
     Gaussian pdf function
-    :param x: np.ndarray,
-        data point(s)
-    :param mu: float,
-        mean
-    :param sigma2: float,
-        variance
     """
-    return 1 / np.sqrt(2 * np.pi * sigma2) * np.exp(-1 / 2 / sigma2 * (x - mu) ** 2)
+    return 1 / np.sqrt(2 * np.pi * variance) * np.exp(-1 / 2 / variance * (x - mean) ** 2)
 
 
 lengths = np.arange(5, 30, 5)  # Number of data lengths
@@ -34,7 +28,7 @@ for i, n in enumerate(lengths):
 
     domain = np.linspace(a_hat.min(), a_hat.max(), 1001)
     plt.plot(domain, pdf_a_hat(domain), label='kde')  # Estimated pdf plot
-    plt.plot(domain, gaussian_pdf(domain, mu=a, sigma2=2 / 3 / n), label='theoretical')  # Theoretical pdf plot
+    plt.plot(domain, gaussian_pdf(domain, mean=a, variance=2 / 3 / n), label='theoretical')  # Theoretical pdf plot
     plt.legend()
     plt.savefig('{}'.format(n))
     plt.close()
