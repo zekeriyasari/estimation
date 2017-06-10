@@ -44,7 +44,7 @@ class TestNumericalEstimators(TestCase):
             return x ** 3 - x - 1
 
         x0 = 1.5
-        root = newton_raphson(f1, x0)
+        i, root = newton_raphson(f1, x0)
         self.failUnless(np.isclose(np.array([root]), np.array([1.324717957])))
 
         def f2(x):
@@ -55,7 +55,7 @@ class TestNumericalEstimators(TestCase):
             ])
 
         x0 = np.array([1., 1., 1.])
-        root = newton_raphson(f2, x0)
+        i, root = newton_raphson(f2, x0)
         self.failUnless(np.allclose(root, np.array([0.833282, 0.035335, -0.498549]), rtol=1e-3))
 
         print("ok...")

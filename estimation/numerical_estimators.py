@@ -4,6 +4,11 @@ import functools
 from estimation.defaults import *
 
 
+class EndOfIteration(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+
 def numerical_gradient(f, x, h=DERIVSTEP, *args, **kwargs):
     """
     Estimate numerical gradient
@@ -60,7 +65,7 @@ def numerical_gradient(f, x, h=DERIVSTEP, *args, **kwargs):
         return grad
 
 
-def newton_raphson(f, x0, fprime=None, tol=TOL, maxiter=MAXITER, callback=None, *args, **kwargs):
+def newton_raphson(f, x0, fprime=None, tol=TOL, maxiter=MAXITER, callback=None, disp=True, *args, **kwargs):
     """
     Newton-Raphson method for root finding in the form:
         f(x) = 0,   f: R^n -> R^m
@@ -76,6 +81,8 @@ def newton_raphson(f, x0, fprime=None, tol=TOL, maxiter=MAXITER, callback=None, 
         maximum number of iterations
     :param callback: callable,
         callback function
+    :param disp: bool,
+        if True, print the iterations
     :param args: tuple,
         arguments of f
     :param kwargs: 
@@ -95,8 +102,13 @@ def newton_raphson(f, x0, fprime=None, tol=TOL, maxiter=MAXITER, callback=None, 
         def fprime(x):
             return numerical_gradient(f, x)
 
+    if disp:
+        print("Iteration Current Point")
     p0 = x0
     for i in range(maxiter):
+        if disp:
+            print("{}: {}".format(i, p0))
+
         fder = fprime(p0)
         fval = ff(p0)
         if isinstance(x0, numbers.Number):  # Scalar Newton-Raphson
@@ -106,9 +118,10 @@ def newton_raphson(f, x0, fprime=None, tol=TOL, maxiter=MAXITER, callback=None, 
         if np.linalg.norm(p - p0) < tol:
             return i, p
 
-        p0 = p
+        p0 = p  # Update current point
         if callback is not None:
             callback()
+    raise EndOfIteration("No convergence for maxiter: {}".format(maxiter))
 
 
 def scoring(f, x0, fisher=None, tol=TOL, maxiter=MAXITER, callback=None, *args, **kwargs):
@@ -156,7 +169,7 @@ def scoring(f, x0, fisher=None, tol=TOL, maxiter=MAXITER, callback=None, *args, 
             p = p0 - np.linalg.inv(finfo).dot(fval).flatten()  # Multivariate scoring
         if np.linalg.norm(p - p0) < tol:
             return i, p
-        p0 = p
+        p0 = p  # Update current point
 
         if callback is not None:
             callback()
