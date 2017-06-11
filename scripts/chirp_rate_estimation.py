@@ -15,11 +15,15 @@ phi = 0  # Phase
 f0 = 1
 f1 = 10
 t1 = 1
-mu = (f1 - f0) / t1  # Chirp rate
-w0 = 2 * np.pi * f0  # Carrier frequency
 
 # Noise parameters
 variance = 0.01  # Variance
+
+# Discrete quantities
+mu = (f1 - f0) / t1  # Continuous time chirp rate
+w0 = 2 * np.pi * f0  # Carrier frequency
+mu_bar = mu * np.pi / fs ** 2  # Discrete time chirp rate
+w0_bar = w0 / fs
 
 n = np.arange(nn)
 t = n * ts
@@ -30,16 +34,16 @@ x = s + w  # Observed signal
 
 def g(theta):
     return np.sum(
-        [(x[k] - a * np.cos(w0 * k + theta * np.pi / (fs ** 2) * (k ** 2) + phi)) * np.sin(
-            w0 * k + theta * np.pi / (fs ** 2) * (k ** 2) + phi) * k ** 2
+        [(x[k] - a * np.cos(w0_bar * k + mu_bar * k ** 2 + phi)) * np.sin(w0_bar * k + mu_bar * k ** 2 + phi) * k ** 2
          for k in n])
 
 
 mu0 = 15
+mu0_hat = mu0 * np.pi / fs ** 2
 # niter, root = newton_raphson(g, r0, fprime=dg)
 niter, root = newton_raphson(g, mu0)
 # niter, root = scoring(g, r0)
-print("True value: {}\nEstimated value: {}\nNumber of iterations: {}".format(mu, root, niter))
+print("True value: {}\nEstimated value: {}\nNumber of iterations: {}".format(mu0_hat, root, niter))
 
 plt.plot(s, label="Signal without noise")
 plt.plot(x, label="Signal with noise")

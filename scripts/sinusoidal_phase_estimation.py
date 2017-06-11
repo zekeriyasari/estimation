@@ -1,34 +1,40 @@
-# Sinusoidal in WGN. Estimation problem is
-#   x[n] = a * cos(2 * pi * f0 * n + phi) + w[n],   n = 0, ..., N - 1
-# where phi to be estimated.
-
 from estimation.numerical_estimators import *
-from matplotlib import pyplot as plt
 
-nn = 50  # Number of data samples
-f0 = 0.1  # Frequency
-phi = np.pi / 2  # Phase in radians
-a = 1.  # Amplitude
-variance = 0.01  # Variance
+# Sampler
+fs = 100
 
-n = np.arange(nn)
-s = a * np.cos(2 * np.pi * f0 * n + phi)  # Sinusoid
-w = np.sqrt(variance) * np.random.randn(nn)  # Noise
-x = s + w  # Observed signal
+# Signal
+l = 50
+a = 1.
+phi = np.pi / 6
+fc = 10
+n = np.arange(l)
+f0 = fc / fs
+s = a * np.cos(2 * np.pi * f0 * n + phi)  # Signal samples
+
+# Monte-Carlo simulation
+m = 1000  # Number of Monte-Carlo trials
+roots = np.array([])
+print("Phase estimation - True Value: {}".format(phi))
+for i in range(m):
+    # phi0 = phi * 1.5  # Initial condition
+    phi0 = np.random.normal(loc=phi, scale=0.1)  # Initial condition
+
+    # Noise
+    variance = 0.01
+    w = np.sqrt(variance) * np.random.randn(l)  # Noise samples
+
+    # Observed Signal
+    x = s + w
+
+    # Nonlinear function
+    def g(theta):
+        return np.sum(
+            [(x[k] - a * np.cos(2 * np.pi * f0 * k + theta)) * np.sin(2 * np.pi * f0 * k + theta) for k in range(l)])
 
 
-def g(theta):
-    return np.sum([(x[k] - a * np.cos(2 * np.pi * f0 * k + theta)) * np.sin(2 * np.pi * f0 * k + theta) for k in n])
+    niter, root = newton_raphson(g, phi0, disp=False)
+    roots = np.append(roots, root)
+    print("Trial-{}: Initial: {}, Estimated Value: {}".format(i, phi0, root))
 
-
-phi0 = np.pi / 6
-# niter, root = newton_raphson(g, r0, fprime=dg)
-niter, root = newton_raphson(g, phi0)
-# niter, root = scoring(g, r0)
-print("True value: {}\nEstimated value: {}\nNumber of iterations: {}".format(phi, root, niter))
-
-plt.plot(n, s, label="Signal without noise")
-plt.plot(n, x, label="Signal with noise")
-plt.xlabel("n")
-plt.legend()
-plt.show()
+print("\nTrue Value: {}\nMean: {}\nVariance: {}".format(phi, roots.mean(), roots.var()))
