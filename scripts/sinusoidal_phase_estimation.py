@@ -1,4 +1,6 @@
 from estimation.numerical_estimators import *
+from matplotlib import pyplot as plt
+from scipy.optimize import newton
 
 # Sampler
 fs = 100
@@ -10,15 +12,19 @@ phi = np.pi / 6
 fc = 10
 n = np.arange(l)
 f0 = fc / fs
-s = a * np.cos(2 * np.pi * f0 * n + phi)  # Signal samples
+w0 = 2 * np.pi * f0
+s = a * np.cos(w0 * n + phi)  # Signal samples
 
 # Monte-Carlo simulation
-m = 1000  # Number of Monte-Carlo trials
-roots = np.array([])
+m = 100  # Number of Monte-Carlo trials
+not_converged = 0  # Number of un-converged trial
+error = np.array([])
 print("Phase estimation - True Value: {}".format(phi))
+print("{:<20s}{:<20s}{:<20s}{:<20s}{:<20s}".format("Trial", "Trial Value", "Initial Value", "Estimated Value",
+                                                   "Number of Iterations"))
 for i in range(m):
-    # phi0 = phi * 1.5  # Initial condition
-    phi0 = np.random.normal(loc=phi, scale=0.1)  # Initial condition
+    # phi0 = phi * 1.25  # Initial condition
+    phi0 = np.random.rand() * np.pi / 2  # Initial condition
 
     # Noise
     variance = 0.01
@@ -29,12 +35,37 @@ for i in range(m):
 
     # Nonlinear function
     def g(theta):
+        return np.sum([(x[k] - a * np.cos(w0 * k + theta)) ** 2 for k in range(l)])
+
+
+    def dg(theta):
         return np.sum(
-            [(x[k] - a * np.cos(2 * np.pi * f0 * k + theta)) * np.sin(2 * np.pi * f0 * k + theta) for k in range(l)])
+            [(x[k] - a * np.cos(w0 * k + theta)) * np.sin(w0 * k + theta) for k in range(l)])
 
 
-    niter, root = newton_raphson(g, phi0, disp=False)
-    roots = np.append(roots, root)
-    print("Trial-{}: Initial: {}, Estimated Value: {}".format(i, phi0, root))
+    def d2g(theta):
+        return np.sum([a * np.sin(w0 * k + theta) ** 2 + (x[k] - a * np.cos(w0 * k + theta)) * np.cos(w0 * k + theta)
+                       for k in range(l)])
 
-print("\nTrue Value: {}\nMean: {}\nVariance: {}".format(phi, roots.mean(), roots.var()))
+    trial_min = newton(dg, phi0)
+
+    try:
+        niter, root = newton_raphson(dg, phi0, disp=False)
+        # niter, root = newton_raphson(dg, phi0, fprime=d2g, disp=True)
+    except EndOfIteration:
+        not_converged += 1
+    error = np.append(error, abs(root - trial_min))
+    print("{:<20d}{:<20.16f}{:<20.10f}{:<20.16f}{:<20d}".format(i, trial_min, phi0, root, niter))
+
+    # step_size = 0.001
+    # x_line = np.arange(0., 2 * np.pi, step_size)
+    # y_line = np.array(list(map(dg, x_line)))
+    # plt.plot(x_line, y_line)
+    # plt.axhline(0.)
+    # plt.show()
+
+print("\nNumber of Monte-Carlo trials: {}\n"
+      "Number of un-converged trials: {}\n"
+      "True Value: {}\n"
+      "Estimator Mean: {}\n"
+      "Estimator Variance: {}\n".format(m, not_converged, phi, error.mean(), error.var()))
