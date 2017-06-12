@@ -25,9 +25,10 @@ for i in range(m):
     # Observed Signal
     x = s + w
 
+
     # Nonlinear function
     def j(theta):
-        return np.sum([(x[k] - theta ** k) ** 2 for k in range(l)])
+        return -np.sum([(x[k] - theta ** k) ** 2 for k in range(l)])
 
 
     def dj(theta):
@@ -39,8 +40,9 @@ for i in range(m):
         return np.sum([k * theta ** (k - 2) * ((k - 1) * x[k] - (2 * k - 1) * theta ** k)
                        for k in range(l)])
 
+
     try:
-        trial_min = newton(dj, theta0)
+        trial_min = newton(lambda x: -dj(x), theta0)
     except RuntimeError:
         pass
 
@@ -54,7 +56,7 @@ for i in range(m):
 
     step_size = 0.001
     x_line = np.arange(0., 1., step_size)
-    y_line = np.array(list(map(dj, x_line)))
+    y_line = np.array(list(map(j, x_line)))
     plt.plot(x_line, y_line)
     plt.axhline(0.)
     plt.show()

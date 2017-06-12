@@ -20,8 +20,8 @@ m = 100  # Number of Monte-Carlo trials
 not_converged = 0  # Number of un-converged trial
 error = np.array([])
 print("Phase estimation - True Value: {}".format(phi))
-print("{:<20s}{:<20s}{:<20s}{:<20s}{:<20s}".format("Trial", "Trial Value", "Initial Value", "Estimated Value",
-                                                   "Number of Iterations"))
+print("{:<20s}{:<20s}{:<20s}{:<20s}{:<20s}{:<20s}".format("Trial", "Trial Value", "Initial Value", "Estimated Value",
+                                                          "Theoretical Value", "Number of Iterations"))
 for i in range(m):
     # phi0 = phi * 1.25  # Initial condition
     phi0 = np.random.rand() * np.pi / 2  # Initial condition
@@ -32,6 +32,7 @@ for i in range(m):
 
     # Observed Signal
     x = s + w
+
 
     # Nonlinear function
     def g(theta):
@@ -47,15 +48,23 @@ for i in range(m):
         return np.sum([a * np.sin(w0 * k + theta) ** 2 + (x[k] - a * np.cos(w0 * k + theta)) * np.cos(w0 * k + theta)
                        for k in range(l)])
 
+
+    # Scipy root finding
     trial_min = newton(dg, phi0)
 
+    # Newton-Raphson root finding
     try:
         niter, root = newton_raphson(dg, phi0, disp=False)
         # niter, root = newton_raphson(dg, phi0, fprime=d2g, disp=True)
     except EndOfIteration:
         not_converged += 1
-    error = np.append(error, abs(root - trial_min))
-    print("{:<20d}{:<20.16f}{:<20.10f}{:<20.16f}{:<20d}".format(i, trial_min, phi0, root, niter))
+    # error = np.append(error, abs(root - trial_min))
+
+    # Theoretical estimation
+    num = x.dot(np.sin(w0 * n))
+    denum = x.dot(np.cos(w0 * n))
+    phi_hat = -np.arctan(num / denum)
+    print("{:<20d}{:<20.16f}{:<20.10f}{:<20.16f}{:<20.16f}{:<20d}".format(i, trial_min, phi0, root, phi_hat, niter))
 
     # step_size = 0.001
     # x_line = np.arange(0., 2 * np.pi, step_size)
@@ -64,8 +73,8 @@ for i in range(m):
     # plt.axhline(0.)
     # plt.show()
 
-print("\nNumber of Monte-Carlo trials: {}\n"
-      "Number of un-converged trials: {}\n"
-      "True Value: {}\n"
-      "Estimator Mean: {}\n"
-      "Estimator Variance: {}\n".format(m, not_converged, phi, error.mean(), error.var()))
+# print("\nNumber of Monte-Carlo trials: {}\n"
+#       "Number of un-converged trials: {}\n"
+#       "True Value: {}\n"
+#       "Estimator Mean: {}\n"
+#       "Estimator Variance: {}\n".format(m, not_converged, phi, error.mean(), error.var()))

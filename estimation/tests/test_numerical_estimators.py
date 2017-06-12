@@ -58,6 +58,23 @@ class TestNumericalEstimators(TestCase):
         i, root = newton_raphson(f2, x0)
         self.failUnless(np.allclose(root, np.array([0.833282, 0.035335, -0.498549]), rtol=1e-3))
 
+        def f3(x):
+            return (1 - x[0]) ** 2 + 100 * (x[1] - x[0] ** 2) ** 2
+
+        def jacf3(x):
+            return np.array([
+                -2 * (1 - x[0]) - 400 * x[0] * (x[1] - x[0] ** 2),
+                200 * (x[1] - x[0] ** 2)
+            ])
+
+        # Root finding
+        x0 = np.random.randn(2)
+        i, root = newton_raphson(jacf3, x0)
+        print("Root: {}".format(root))
+
+        # scipy.minimize
+        from scipy.optimize import minimize
+        res = minimize(f3, x0)
+        print(res)
+
         print("ok...")
-
-
