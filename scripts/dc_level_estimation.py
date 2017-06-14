@@ -34,6 +34,15 @@ for i in range(m):
     def ddj(theta):
         return -l
 
+    # Plot cost function
+    dmn = np.arange(0, 10, 0.001)
+    rng = np.array(list(map(j, dmn)))
+    plt.plot(dmn, rng)
+    plt.xlabel("$A$")
+    plt.ylabel("$J(A)$")
+    plt.axvline(a, linestyle='dashed', color="red")
+    plt.show()
+
 
     # Minimize cost function
     x0 = np.array([4.])

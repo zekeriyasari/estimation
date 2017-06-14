@@ -38,9 +38,12 @@ for i in range(m):
                       (x * np.cos(2 * np.pi * theta * n + phi0) - a * np.cos(4 * np.pi * f0 * n + 2 * theta)))
 
     # Plot cost function
-    dmn = np.arange(0.1, 0.4, 0.001)
+    dmn = np.arange(0., 0.5, 0.0001)
     rng = np.array(list(map(j, dmn)))
     plt.plot(dmn, rng)
+    plt.xlabel("$f_0$")
+    plt.ylabel("$J(f_0)$")
+    plt.axvline(f0, linestyle='dashed', color="red")
     plt.show()
 
     # Minimize cost function
@@ -63,13 +66,13 @@ plt.figure()
 pdf = stats.gaussian_kde(theta_hat)  # Gaussian kernel density estimation
 dom = np.arange(0., 0.5, 0.001)
 plt.plot(dom, pdf(dom))
-plt.xlabel("$\hat{\phi}$")
-plt.ylabel("$p(\hat{\phi})$")
-plt.title("$KDE \; of \; \hat{phi}$")
+plt.xlabel("$\hat{f_0}$")
+plt.ylabel("$p(\hat{f_0})$")
+plt.title("$KDE \; of \; \hat{f_0}$")
 
 plt.figure()
 plt.hist(theta_hat)  # Histogram
-plt.xlabel("$\hat{\phi}$")
-plt.ylabel("$p(\hat{\phi})$")
-plt.title("$Histogram \; of \; \hat{\phi}$")
+plt.xlabel("$\hat{f_0}$")
+plt.ylabel("$p(\hat{f_0})$")
+plt.title("$Histogram \; of \; \hat{f_0}$")
 plt.show()

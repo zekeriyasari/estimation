@@ -1,64 +1,85 @@
 from estimation.numerical_estimators import *
-from scipy.signal import chirp
+from scipy import signal
+from scipy import stats
+from scipy import optimize
 from matplotlib import pyplot as plt
 
-# Sampler
-fs = 100
-
-# Signal
-l = 200
+# Construct a chirp signal
 a = 1.
-phi = 0.
-f0 = 1
-f1 = 10
+phi0 = 0.
+f0 = 1.
 t1 = 1.
+f1 = 11.
+mu = (f1 - f0) / t1
+fs = 100
+t = np.arange(0., t1, 1. / fs)
+s = a * signal.chirp(t, f0, t1, f1, phi=phi0)
+l = s.size
 n = np.arange(l)
-t = n / fs
-s = chirp(t, f0, t1, f1)  # Signal samples
-w0 = 2 * np.pi * f0 / fs  # Discrete frequency
-mu = (f1 - f0) / (t1 * fs ** 2) * np.pi  # Discrete chirp rate
-# s = a * np.cos(2 * np.pi * f0 * n + phi)  # Signal samples
 
 # Monte-Carlo simulation
-m = 100  # Number of Monte-Carlo trials
-not_converged = 0  # Number of un-converged trials
-roots = np.array([])
-print("Phase estimation - True Value: {}".format(mu))
-print("{:20s}{:20s}{:20s}{:20s}".format("Trial", "Initial", "Estimated Value", "Number of Iterations"))
+m = 1000  # Number of Monte-Carlo simulations
+theta_hat = np.zeros(m)
 for i in range(m):
-    # mu0 = mu * 1.5  # Initial condition
-    mu0 = np.random.normal(loc=mu, scale=0.001)  # Initial condition
-
-    # Noise
+    # Construct noise
     variance = 0.01
-    w = np.sqrt(variance) * np.random.randn(l)  # Noise samples
+    w = np.sqrt(variance) * np.random.randn(l)
 
-    # Observed Signal
+    # Construct observed signal samples
     x = s + w
 
-    # Nonlinear function
-    def g(theta):
-        return np.sum(
-            [(x[k] - a * np.cos(w0 * k + theta * k ** 2 + phi)) * np.sin(w0 * k + theta * k ** 2 + phi) * k ** 2
-             for k in range(l)])
+    # Cost function
+    def j(theta):
+        return np.linalg.norm(x - a * signal.chirp(t, f0, t1, f0 + theta * t1, phi=phi0)) ** 2
 
 
-    # Derivative of nonlinear function
-    def dg(theta):
-        return np.sum([a * np.sin(w0 * k + theta * k ** 2 + phi) ** 2 * k ** 2 +
-                       (x[k] - a * np.cos(w0 * k + theta * k ** 2 + phi)) *
-                       np.cos(w0 * k + theta * k ** 2 + phi) * k ** 4 for k in range(l)])
+    # Gradient of cost function
+    def dj(theta):
+        return np.sum(n ** 2 *
+                      (x * signal.chirp(t, f0, t1, f0 + theta * t1, phi=phi0 - np.pi / 2)
+                       - a / 2 * signal.chirp(t, 2 * f0, t1, 2 * (f0 + theta * t1), phi=2 * (phi0 - np.pi / 2))))
 
 
-    try:
-        niter, root = newton_raphson(g, mu0, fprime=dg, disp=False)
-    except EndOfIteration:
-        not_converged += 1
-    roots = np.append(roots, root)
-    print("{:<20d}{:<20.16f}{:<20.16f}{:<20d}".format(i, mu0, root, niter))
+    # Hessian of cost function
+    def ddj(theta):
+        return np.sum(n ** 4 * np.pi / fs ** 2 *
+                      (x * signal.chirp(t, f0, t1, f0 + theta * t1, phi=phi0)
+                       - a * signal.chirp(t, 2 * f0, t1, 2 * (f0 + theta * t1), phi=2 * phi0)))
 
-print("\nNumber of Monte-Carlo trials: {}\n"
-      "Number of un-converged trials: {}\n"
-      "True Value: {}\n"
-      "Estimator Mean: {}\n"
-      "Estimator Variance: {}\n".format(m, not_converged, mu, roots.mean(), roots.var()))
+
+    # Plot cost function
+    dmn = np.arange(0., 20, 0.01)
+    rng = np.array(list(map(j, dmn)))
+    plt.plot(dmn, rng)
+    plt.show()
+
+    # Minimize cost function
+    x0 = np.array([10.5])
+    theta_min = optimize.minimize(j, x0)['x']
+
+    # Find root by scipy
+    root0 = optimize.root(dj, x0)['x']
+
+    # Find root by newton_raphson
+    niter, root1 = newton_raphson(dj, x0[0], disp=False)
+
+    print("True value: {}\nScipy optimize: {}\nScipy root: {}\nNewton raphson root: {}".
+          format(mu, theta_min, root0, root1))
+    theta_hat[i] = root1
+
+print("\nTrue Value: {}\nEstimator mean: {}\nEstimator Variance: {}".format(mu, theta_hat.mean(), theta_hat.var()))
+
+plt.figure()
+pdf = stats.gaussian_kde(theta_hat)  # Gaussian kernel density estimation
+dom = np.arange(10., 11., 0.001)
+plt.plot(dom, pdf(dom))
+plt.xlabel("$\hat{\mu}$")
+plt.ylabel("$p(\hat{\mu})$")
+plt.title("$KDE \; of \; \hat{\mu}$")
+
+plt.figure()
+plt.hist(theta_hat)  # Histogram
+plt.xlabel("$\hat{\mu}$")
+plt.ylabel("$p(\hat{\mu})$")
+plt.title("$Histogram \; of \; \hat{\mu}$")
+plt.show()

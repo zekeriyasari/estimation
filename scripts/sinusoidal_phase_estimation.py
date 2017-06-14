@@ -7,7 +7,7 @@ from scipy import stats
 l = 50
 a = 1.
 f0 = 0.1
-phi0 = np.pi / 6
+phi0 = np.pi / 3
 n = np.arange(l)
 s = a * np.cos(2 * np.pi * f0 * n + phi0)
 
@@ -37,6 +37,14 @@ for i in range(m):
     def ddj(theta):
         return np.sum(x * np.cos(2 * np.pi * f0 * n + theta) - a * np.cos(4 * np.pi * f0 * n + 2 * theta))
 
+    # Plot cost function
+    dmn = np.arange(0, 4 * np.pi, 0.001)
+    rng = np.array(list(map(j, dmn)))
+    plt.plot(dmn, rng)
+    plt.xlabel("$\phi_0$")
+    plt.ylabel("$J(\phi_0)$")
+    plt.axvline(phi0, linestyle='dashed', color="red")
+    plt.show()
 
     # Minimize cost function
     x0 = np.array([np.pi / 4])
@@ -60,7 +68,7 @@ dom = np.arange(0., np.pi, 0.01)
 plt.plot(dom, pdf(dom))
 plt.xlabel("$\hat{\phi}$")
 plt.ylabel("$p(\hat{\phi})$")
-plt.title("$KDE \; of \; \hat{phi}$")
+plt.title("$KDE \; of \; \hat{\phi}$")
 
 plt.figure()
 plt.hist(theta_hat)  # Histogram
