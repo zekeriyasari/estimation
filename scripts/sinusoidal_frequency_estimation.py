@@ -1,49 +1,75 @@
 from estimation.numerical_estimators import *
+from matplotlib import pyplot as plt
+from scipy import optimize
+from scipy import stats
 
-# Sampler
-fs = 100
-
-# Signal
+# Construct signal
 l = 50
 a = 1.
-phi = 0.
-fc = 10
+f0 = 0.25
+phi0 = np.pi / 6
 n = np.arange(l)
-f0 = fc / fs
-s = a * np.cos(2 * np.pi * f0 * n + phi)  # Signal samples
+s = a * np.cos(2 * np.pi * f0 * n + phi0)
 
 # Monte-Carlo simulation
-m = 1000  # Number of Monte-Carlo trials
-not_converged = 0  # Number of un-converged trials
-roots = np.array([])
-print("Phase estimation - True Value: {}".format(f0))
+m = 1000  # Number of Monte-Carlo simulations
+theta_hat = np.zeros(m)
 for i in range(m):
-    # phi0 = phi * 1.5  # Initial condition
-    freq0 = np.random.normal(loc=f0, scale=0.1)  # Initial condition
-
-    # Noise
+    # Construct noise
     variance = 0.01
-    w = np.sqrt(variance) * np.random.randn(l)  # Noise samples
+    w = np.sqrt(variance) * np.random.randn(l)
 
-    # Observed Signal
+    # Construct observed signal samples
     x = s + w
 
-    # Nonlinear function
-    def g(theta):
-        return np.sum(
-            [(x[k] - a * np.cos(2 * np.pi * theta * k + phi)) * np.sin(2 * np.pi * theta * k + phi) * k for k in
-             range(l)])
+    # Cost function
+    def j(theta):
+        return np.linalg.norm(x - a * np.cos(2 * np.pi * theta * n + phi0)) ** 2
 
 
-    try:
-        niter, root = newton_raphson(g, freq0, disp=False)
-    except EndOfIteration:
-        not_converged += 1
-    roots = np.append(roots, root)
-    print("Trial-{}: Initial: {}, Estimated Value: {}".format(i, freq0, root))
+    # Gradient of cost function
+    def dj(theta):
+        return np.sum(n * (x * np.sin(2 * np.pi * theta * n + phi0) - a / 2 * np.sin(4 * np.pi * f0 * n + 2 * theta)))
 
-print("\nNumber of Monte-Carlo trials: {}\n"
-      "Number of un-converged trials: {}\n"
-      "True Value: {}\n"
-      "Estimator Mean: {}\n"
-      "Estimator Variance: {}\n".format(m, not_converged, f0, roots.mean(), roots.var()))
+
+    # Hessian of cost function
+    def ddj(theta):
+        return np.sum(2 * np.pi * n ** 2 *
+                      (x * np.cos(2 * np.pi * theta * n + phi0) - a * np.cos(4 * np.pi * f0 * n + 2 * theta)))
+
+    # Plot cost function
+    dmn = np.arange(0.1, 0.4, 0.001)
+    rng = np.array(list(map(j, dmn)))
+    plt.plot(dmn, rng)
+    plt.show()
+
+    # Minimize cost function
+    x0 = np.array([0.4])
+    theta_min = optimize.minimize(j, x0)['x']
+
+    # Find root by scipy
+    root0 = optimize.root(dj, x0)['x']
+
+    # Find root by newton_raphson
+    niter, root1 = newton_raphson(dj, x0[0], fprime=ddj, disp=False)
+
+    # print("True value: {}\nScipy optimize: {}\nScipy root: {}\nNewton raphson root: {}".
+    #       format(f0, theta_min, root0, root1))
+    theta_hat[i] = root1
+
+print("True Value: {}\nEstimator mean: {}\nEstimator Variance: {}".format(f0, theta_hat.mean(), theta_hat.var()))
+
+plt.figure()
+pdf = stats.gaussian_kde(theta_hat)  # Gaussian kernel density estimation
+dom = np.arange(0., 0.5, 0.001)
+plt.plot(dom, pdf(dom))
+plt.xlabel("$\hat{\phi}$")
+plt.ylabel("$p(\hat{\phi})$")
+plt.title("$KDE \; of \; \hat{phi}$")
+
+plt.figure()
+plt.hist(theta_hat)  # Histogram
+plt.xlabel("$\hat{\phi}$")
+plt.ylabel("$p(\hat{\phi})$")
+plt.title("$Histogram \; of \; \hat{\phi}$")
+plt.show()

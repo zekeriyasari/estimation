@@ -1,43 +1,67 @@
-# Example 7.5 in the book
-# DC level estimation in WGN. Estimation problem is
-#   x[n] = A + w[n],    n = 0, ..., N - 1
-# where w[n] is WGN with variance A
-# A is to be estimated
+from estimation.numerical_estimators import *
+from matplotlib import pyplot as plt
+from scipy import optimize
+from scipy import stats
 
-import numpy as np
-from scipy.stats import gaussian_kde
-import matplotlib.pyplot as plt
+# Construct signal
+l = 50
+a = 2.
+s = a * np.ones(l)
+
+# Monte-Carlo simulation
+m = 1000
+theta_hat = np.zeros(m)
+for i in range(m):
+    # Construct noise
+    variance = 0.01
+    w = np.sqrt(variance) * np.random.randn(l)
+
+    # Construct observed signal samples
+    x = s + w
 
 
-def gaussian_pdf(x, mean=0., variance=1.):
-    """
-    Gaussian pdf function
-    """
-    return 1 / np.sqrt(2 * np.pi * variance) * np.exp(-1 / 2 / variance * (x - mean) ** 2)
+    # Cost function
+    def j(theta):
+        return np.linalg.norm(x - theta * np.ones(l)) ** 2
 
 
-lengths = np.arange(5, 30, 5)  # Number of data lengths
-m = 5000  # Number of Monte-carlo realization
-means = np.zeros(lengths.size)  # Estimator means
-variances = np.zeros(lengths.size)  # Estimator variances
+    # Gradient of cost function
+    def dj(theta):
+        return np.sum(x - theta * np.ones(l))
 
-for i, n in enumerate(lengths):
-    a = 1  # DC level signal
-    w = np.sqrt(a) * np.random.randn(m, n)  # Noise
-    x = a + w  # Observed signal
 
-    a_hat = np.zeros(m)
-    for j in range(m):
-        a_hat[j] = -1 / 2 + np.sqrt(1 / n * x[j, :].dot(x[j, :]) + 1 / 4)  # Estimated Dc level
+    # Hessian of cost function
+    def ddj(theta):
+        return -l
 
-    pdf_a_hat = gaussian_kde(a_hat)  # Estimated pdf of estimator
 
-    domain = np.linspace(a_hat.min(), a_hat.max(), 1001)
-    plt.plot(domain, pdf_a_hat(domain), label='kde')  # Estimated pdf plot
-    plt.plot(domain, gaussian_pdf(domain, mean=a, variance=2 / 3 / n), label='theoretical')  # Theoretical pdf plot
-    plt.legend()
-    plt.savefig('{}'.format(n))
-    plt.close()
+    # Minimize cost function
+    x0 = np.array([4.])
+    theta_min = optimize.minimize(j, x0)['x']
 
-    means[i] = a_hat.mean()
-    variances[i] = a_hat.var() * n
+    # Find root by scipy
+    root0 = optimize.root(dj, x0)['x']
+
+    # Find root by newton_raphson
+    niter, root1 = newton_raphson(dj, x0[0], fprime=ddj, disp=False)
+
+    # print("True value: {}\nScipy optimize: {}\nScipy root: {}\nNewton raphson root: {}".
+    #       format(a, theta_min, root0, root1))
+    theta_hat[i] = root1
+
+print("True Value: {}\nEstimator mean: {}\nEstimator Variance: {}".format(a, theta_hat.mean(), theta_hat.var()))
+
+plt.figure()
+pdf = stats.gaussian_kde(theta_hat)  # Gaussian kernel density estimation
+dom = np.arange(1, 3, 0.01)
+plt.plot(dom, pdf(dom))
+plt.xlabel("$\hat{A}$")
+plt.ylabel("$p(\hat{A})$")
+plt.title("$KDE \; of \; \hat{A}$")
+
+plt.figure()
+plt.hist(theta_hat)  # Histogram
+plt.xlabel("$\hat{A}$")
+plt.ylabel("$p(\hat{A})$")
+plt.title("$Histogram \; of \; \hat{A}$")
+plt.show()
