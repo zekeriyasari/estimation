@@ -2,6 +2,8 @@ from estimation.numerical_estimators import *
 from matplotlib import pyplot as plt
 from scipy.optimize import newton
 
+
+
 # Sampler
 fs = 100
 
